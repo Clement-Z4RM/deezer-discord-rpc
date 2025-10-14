@@ -1,13 +1,33 @@
 import { app, BrowserWindow } from 'electron';
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
 import { log } from './utils/Log';
 import * as Tray from './utils/Tray';
 import updater from './utils/Updater';
 import * as RPC from './utils/RPC';
 import * as Window from './utils/Window';
 import { version } from '../package.json';
-import { showWindow } from './utils/Window';
+import { showWindow, currentTrack } from './utils/Window';
 
 log('App', 'Deezer Discord RPC version', version, process.argv0.includes('node') ? '(debug)' : '');
+
+const expressApp = express();
+const server = http.createServer(expressApp);
+const io = new Server(server);
+
+expressApp.get('/deezer', (_request, response) => response.sendFile('C:\\path\\to\\deezer-rpc\\index.html')); // TODO: better path handling
+
+io.on('connection', (socket) => {
+  socket.on('getSong', () => socket.emit('currentSong', {
+    title: currentTrack?.trackTitle,
+    artists: currentTrack?.trackArtists,
+    albumCover: currentTrack?.albumCover,
+    albumTitle: currentTrack?.albumTitle
+  }));
+});
+
+server.listen(3000);
 
 app.whenReady().then(async () => {
   const gotTheLock = app.requestSingleInstanceLock();
@@ -22,7 +42,7 @@ app.whenReady().then(async () => {
   }
 
   await Tray.init(app, RPC.client);
-  await Window.load(app);
+  await Window.load(app, io);
   await updater(true);
 
   RPC.connect();
@@ -37,7 +57,7 @@ app.whenReady().then(async () => {
       if (!window.isVisible()) window.show();
       if (window.isMinimized()) window.maximize();
     } else {
-      await Window.load(app);
+      await Window.load(app, io);
     }
   });
 

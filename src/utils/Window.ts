@@ -1,3 +1,4 @@
+import type { Server } from 'socket.io';
 import { userAgent } from '../variables';
 import { join, resolve } from 'path';
 import loadAdBlock from './AdBlock';
@@ -9,9 +10,10 @@ import { BrowserWindow, ipcMain, shell, nativeImage, session } from 'electron';
 import { setActivity } from './Activity';
 
 export let win: BrowserWindow;
-let currentTrack: CurrentTrack;
+let io: Server;
+export let currentTrack: CurrentTrack;
 
-export async function load(app: Electron.App) {
+export async function load(app: Electron.App, socketIo: Server) {
   const width = parseInt(await Config.get(app, 'window_width')) || 1920;
   const height = parseInt(await Config.get(app, 'window_height')) || 1080;
   win = new BrowserWindow({
@@ -27,6 +29,7 @@ export async function load(app: Electron.App) {
       preload: resolve(__dirname, '..', 'preload.js')
     }
   });
+  io = socketIo;
   if (width === 1920 && height === 1080) win.maximize();
   win.focus();
   win.show();
@@ -240,7 +243,15 @@ async function updateActivity(app: Electron.App, currentTimeChanged?: boolean) {
       await setActivity({
         client, albumId: result.albumId, timeLeft: result.timeLeft, app, ...currentTrack, type: result.mediaType,
         songTime: realSongTime
-      }).then(() => log('Activity', 'Updated'));
+      }).then(() => {
+        log('Activity', 'Updated');
+        io.emit('currentSong', {
+          title: currentTrack.trackTitle,
+          artists: currentTrack.trackArtists,
+          albumCover: currentTrack.albumCover,
+          albumTitle: currentTrack.albumTitle
+        });
+      });
     }
     currentTrack.songTime = realSongTime;
     currentTrack.trackTitle = result.trackName;
