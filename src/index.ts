@@ -27,7 +27,7 @@ io.on('connection', (socket) => {
   }));
 });
 
-server.listen(3000);
+server.listen(3000); // TODO: configurable port
 
 app.whenReady().then(async () => {
   const gotTheLock = app.requestSingleInstanceLock();
