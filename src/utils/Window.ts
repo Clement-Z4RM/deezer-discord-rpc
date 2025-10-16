@@ -248,8 +248,8 @@ async function updateActivity(app: Electron.App, currentTimeChanged?: boolean) {
         io.emit('currentSong', {
           title: currentTrack.trackTitle,
           artists: currentTrack.trackArtists,
-          albumCover: currentTrack.albumCover,
-          albumTitle: currentTrack.albumTitle
+          album: currentTrack.albumTitle,
+          cover: currentTrack.albumCover
         });
       });
     }
