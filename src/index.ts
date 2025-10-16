@@ -1,5 +1,4 @@
 import { app, BrowserWindow } from 'electron';
-import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import { log } from './utils/Log';
