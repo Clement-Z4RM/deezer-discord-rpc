@@ -12,11 +12,12 @@ import { showWindow, currentTrack } from './utils/Window';
 
 log('App', 'Deezer Discord RPC version', version, process.argv0.includes('node') ? '(debug)' : '');
 
-const expressApp = express();
-const server = http.createServer(expressApp);
-const io = new Server(server);
-
-expressApp.get('/deezer', (_request, response) => response.sendFile('C:\\path\\to\\deezer-rpc\\index.html')); // TODO: better path handling
+const server = http.createServer();
+const io = new Server(server, {
+  cors: {
+    origin: '*'
+  }
+});
 
 io.on('connection', (socket) => {
   socket.on('getSong', () => socket.emit('currentSong', {
