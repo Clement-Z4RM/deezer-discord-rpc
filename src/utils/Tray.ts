@@ -7,11 +7,12 @@ import { version } from '../../package.json';
 import { log } from './Log';
 import { win } from './Window';
 import MenuItemConstructorOptions = Electron.MenuItemConstructorOptions;
+import type { Server } from 'socket.io';
 
 const iconPath = join(__dirname, '..', 'img', 'tray.png');
 
 export let tray: Tray | null = null;
-export async function init(app: Electron.App, client: import('@xhayper/discord-rpc').Client) {
+export async function init(app: Electron.App, client: import('@xhayper/discord-rpc').Client, io: Server) {
   app?.whenReady().then(async () => {
     tray = new Tray(iconPath);
     const contextMenu = Menu.buildFromTemplate([
@@ -63,7 +64,7 @@ export async function init(app: Electron.App, client: import('@xhayper/discord-r
       { type: 'separator' },
       {
         label: 'Quit', type: 'normal', click: async () => {
-          RPC.disconnect().catch(console.error);
+          RPC.disconnect(io).catch(console.error);
           win.close();
           app.quit();
           process.exit(0);

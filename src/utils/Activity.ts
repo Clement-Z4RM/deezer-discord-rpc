@@ -2,13 +2,14 @@ import * as Config from './Config';
 import { tray } from './Tray';
 import { version } from '../../package.json';
 import { ActivityType } from 'discord-api-types/v10';
+import type { Server } from 'socket.io';
 
 export async function setActivity(options: {
   client: import('@xhayper/discord-rpc').Client, albumId: number, trackId: string, playing: boolean, timeLeft: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trackTitle: string, trackArtists: any, albumCover: string, albumTitle: string, app: Electron.App, type: string,
   songTime: number
-}) {
+}, io: Server) {
   const {
     timeLeft, playing, client, albumTitle, trackArtists, trackTitle,
     albumCover, app, type, trackId, songTime
@@ -34,8 +35,10 @@ export async function setActivity(options: {
   }
   if (!client) return;
 
-  if (!playing)
+  if (!playing) {
+    io.emit('currentSong', null);
     return await client.user.clearActivity();
+  }
 
   const getTrackLink = () => {
     switch (type) {
@@ -84,6 +87,12 @@ export async function setActivity(options: {
   const isLivestream = (Date.now() + timeLeft) < Date.now();
   const playedTime = Date.now() - songTime + timeLeft;
 
+  io.emit('currentSong', {
+    title: trackTitle,
+    artists: trackArtists,
+    album: albumTitle,
+    cover: albumCover
+  });
   client.user.setActivity({
     type: ActivityType.Listening,
     statusDisplayType: getStatusDisplayType(),

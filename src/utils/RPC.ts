@@ -1,6 +1,7 @@
 import * as RPC from '@xhayper/discord-rpc';
 import { log } from './Log';
 import { clientId } from '../variables';
+import type { Server } from 'socket.io';
 
 export const client = new RPC.Client({
   transport: {
@@ -31,8 +32,9 @@ export function connect() {
   client.login().catch(console.error);
 }
 
-export async function disconnect() {
+export async function disconnect(io: Server) {
   log('RPC', 'Disconnecting...');
+  io.emit('currentSong', null);
   await client.user.clearActivity(process.pid);
   await client.destroy().then(() => log('RPC', 'Disconnected'));
 }

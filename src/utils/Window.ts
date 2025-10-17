@@ -10,10 +10,9 @@ import { BrowserWindow, ipcMain, shell, nativeImage, session } from 'electron';
 import { setActivity } from './Activity';
 
 export let win: BrowserWindow;
-let io: Server;
 export let currentTrack: CurrentTrack;
 
-export async function load(app: Electron.App, socketIo: Server) {
+export async function load(app: Electron.App, io: Server) {
   const width = parseInt(await Config.get(app, 'window_width')) || 1920;
   const height = parseInt(await Config.get(app, 'window_height')) || 1080;
   win = new BrowserWindow({
@@ -29,7 +28,6 @@ export async function load(app: Electron.App, socketIo: Server) {
       preload: resolve(__dirname, '..', 'preload.js')
     }
   });
-  io = socketIo;
   if (width === 1920 && height === 1080) win.maximize();
   win.focus();
   win.show();
@@ -96,7 +94,7 @@ export async function load(app: Electron.App, socketIo: Server) {
 
   win.on('close', async (e) => {
     if (await Config.get(app, 'dont_close_to_tray')) {
-      await RPC.disconnect();
+      await RPC.disconnect(io);
       return true;
     }
     e.preventDefault();
@@ -106,7 +104,7 @@ export async function load(app: Electron.App, socketIo: Server) {
   });
 
   ipcMain.on('update_activity', (_, currentTimeChanged) => {
-    updateActivity(app, currentTimeChanged);
+    updateActivity(app, io, currentTimeChanged);
   });
   ipcMain.on('nav_back', () => win.webContents.navigationHistory.goBack());
   ipcMain.on('nav_forward', () => win.webContents.navigationHistory.goForward());
@@ -184,7 +182,7 @@ const UpdateReason = {
   MUSIC_NOT_RIGHT_TIME: 'song time wasn\'t the right one'
 };
 
-async function updateActivity(app: Electron.App, currentTimeChanged?: boolean) {
+async function updateActivity(app: Electron.App, io: Server, currentTimeChanged?: boolean) {
   setThumbarButtons();
 
   const client = RPC.client;
@@ -243,15 +241,7 @@ async function updateActivity(app: Electron.App, currentTimeChanged?: boolean) {
       await setActivity({
         client, albumId: result.albumId, timeLeft: result.timeLeft, app, ...currentTrack, type: result.mediaType,
         songTime: realSongTime
-      }).then(() => {
-        log('Activity', 'Updated');
-        io.emit('currentSong', {
-          title: currentTrack.trackTitle,
-          artists: currentTrack.trackArtists,
-          album: currentTrack.albumTitle,
-          cover: currentTrack.albumCover
-        });
-      });
+      }, io).then(() => log('Activity', 'Updated'));
     }
     currentTrack.songTime = realSongTime;
     currentTrack.trackTitle = result.trackName;

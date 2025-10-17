@@ -41,14 +41,14 @@ app.whenReady().then(async () => {
     });
   }
 
-  await Tray.init(app, RPC.client);
+  await Tray.init(app, RPC.client, io);
   await Window.load(app, io);
   await updater(true);
 
   RPC.connect();
 
   app.on('quit', () => {
-    RPC.disconnect();
+    RPC.disconnect(io);
   });
 
   app.on('activate', async () => {
